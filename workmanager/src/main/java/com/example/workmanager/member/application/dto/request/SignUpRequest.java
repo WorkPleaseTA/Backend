@@ -1,0 +1,27 @@
+package com.example.workmanager.member.application.dto.request;
+
+import com.example.workmanager.member.domain.entity.UserRole;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
+public class SignUpRequest {
+
+    @NotBlank(message = "아이디를 입력해주세요.")
+    @Size(min = 4, max = 20, message = "아이디는 4~20자 사이여야 합니다.")
+    private String loginId;
+
+    @NotBlank(message = "비밀번호를 입력해주세요.")
+    @Size(min = 8, message = "비밀번호는 8자 이상이어야 합니다.")
+    private String password;
+
+    @NotBlank(message = "이름을 입력해주세요.")
+    private String name;
+
+    @NotNull(message = "역할을 선택해주세요.")
+    private UserRole role;
+}

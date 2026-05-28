@@ -1,12 +1,14 @@
 package com.example.workmanager.global.common.response;
 
 import com.example.workmanager.global.common.exception.ErrorCode;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
 
     private boolean success;
@@ -22,15 +24,15 @@ public class ApiResponse<T> {
     }
 
     public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(true, "S200", "요청이 성공했습니다.", data);
+        return new ApiResponse<>(true, null, "요청이 성공했습니다.", data);
     }
 
     public static <T> ApiResponse<T> success(String message, T data) {
-        return new ApiResponse<>(true, "S200", message, data);
+        return new ApiResponse<>(true, null, message, data);
     }
 
     public static ApiResponse<Void> success(String message) {
-        return new ApiResponse<>(true, "S200", message, null);
+        return new ApiResponse<>(true, null, message, null);
     }
 
     public static ApiResponse<Void> error(ErrorCode errorCode) {
