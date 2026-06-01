@@ -5,6 +5,7 @@ import com.example.workmanager.schedule.application.dto.request.FixedScheduleCre
 import com.example.workmanager.schedule.application.dto.request.FixedScheduleUpdateRequest;
 import com.example.workmanager.schedule.application.dto.response.FixedScheduleEditResponse;
 import com.example.workmanager.schedule.application.dto.response.FixedScheduleResponse;
+import com.example.workmanager.schedule.application.dto.response.TodayScheduleResponse;
 import com.example.workmanager.schedule.domain.entity.FixedSchedule;
 import com.example.workmanager.schedule.domain.exception.ScheduleErrorCode;
 import com.example.workmanager.schedule.domain.repository.FixedScheduleRepository;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
@@ -119,6 +121,19 @@ public class FixedScheduleService {
         }
 
         fixedScheduleRepository.delete(schedule);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TodayScheduleResponse> getTodaySchedule(Long userId) {
+        DayOfWeek today = LocalDate.now().getDayOfWeek();
+
+        return storeMemberRepository.findAllByUserIdAndStatus(userId, StoreMemberStatus.ACTIVE)
+                .stream()
+                .flatMap(member -> fixedScheduleRepository
+                        .findByStoreMemberIdAndDayOfWeek(member.getId(), today)
+                        .stream())
+                .map(TodayScheduleResponse::from)
+                .toList();
     }
 
     private Store getOwnerStore(Long userId, Long storeId) {

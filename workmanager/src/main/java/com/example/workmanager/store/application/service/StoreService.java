@@ -5,6 +5,8 @@ import com.example.workmanager.member.domain.entity.User;
 import com.example.workmanager.member.domain.entity.UserRole;
 import com.example.workmanager.member.domain.exception.UserErrorCode;
 import com.example.workmanager.member.domain.repository.UserRepository;
+import com.example.workmanager.schedule.domain.entity.FixedSchedule;
+import com.example.workmanager.schedule.domain.repository.FixedScheduleRepository;
 import com.example.workmanager.store.application.dto.request.StoreCreateRequest;
 import com.example.workmanager.store.application.dto.request.StoreJoinRequest;
 import com.example.workmanager.store.application.dto.response.StoreCreateResponse;
@@ -19,8 +21,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +35,7 @@ public class StoreService {
     private final StoreRepository storeRepository;
     private final StoreMemberRepository storeMemberRepository;
     private final UserRepository userRepository;
+    private final FixedScheduleRepository fixedScheduleRepository;
 
     public StoreCreateResponse createStore(Long userId, StoreCreateRequest request) {
         User owner = getUser(userId);
@@ -84,7 +90,14 @@ public class StoreService {
                 .map(store -> {
                     List<StoreMember> members = storeMemberRepository
                             .findAllByStoreIdAndStatus(store.getId(), StoreMemberStatus.ACTIVE);
-                    return StoreDetailResponse.of(store, members);
+                    Map<Long, List<DayOfWeek>> workDaysMap = fixedScheduleRepository
+                            .findAllByStoreMemberStoreId(store.getId())
+                            .stream()
+                            .collect(Collectors.groupingBy(
+                                    fs -> fs.getStoreMember().getId(),
+                                    Collectors.mapping(FixedSchedule::getDayOfWeek, Collectors.toList())
+                            ));
+                    return StoreDetailResponse.of(store, members, workDaysMap);
                 })
                 .toList();
     }
