@@ -3,7 +3,7 @@ name: Deploy to EC2 with ECR
 on:
   push:
     branches:
-      - feature/deploy
+      - main
   workflow_dispatch:
 
 jobs:
