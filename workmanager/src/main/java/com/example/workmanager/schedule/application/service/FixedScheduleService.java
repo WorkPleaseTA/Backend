@@ -9,6 +9,7 @@ import com.example.workmanager.schedule.application.dto.response.TodayScheduleRe
 import com.example.workmanager.schedule.domain.entity.FixedSchedule;
 import com.example.workmanager.schedule.domain.exception.ScheduleErrorCode;
 import com.example.workmanager.schedule.domain.repository.FixedScheduleRepository;
+import com.example.workmanager.member.domain.entity.UserRole;
 import com.example.workmanager.store.domain.entity.Store;
 import com.example.workmanager.store.domain.entity.StoreMember;
 import com.example.workmanager.store.domain.entity.StoreMemberStatus;
@@ -75,7 +76,10 @@ public class FixedScheduleService {
     public List<FixedScheduleEditResponse> getFixedScheduleEditView(Long userId, Long storeId, DayOfWeek dayOfWeek) {
         getOwnerStore(userId, storeId);
 
-        List<StoreMember> allMembers = storeMemberRepository.findAllByStoreIdAndStatus(storeId, StoreMemberStatus.ACTIVE);
+        List<StoreMember> allMembers = storeMemberRepository.findAllByStoreIdAndStatus(storeId, StoreMemberStatus.ACTIVE)
+                .stream()
+                .filter(m -> m.getUser().getRole() != UserRole.OWNER)
+                .toList();
 
         Map<Long, FixedSchedule> scheduleMap = fixedScheduleRepository
                 .findAllByStoreMemberStoreIdAndDayOfWeek(storeId, dayOfWeek)
