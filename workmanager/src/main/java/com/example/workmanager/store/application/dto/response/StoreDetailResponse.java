@@ -1,5 +1,6 @@
 package com.example.workmanager.store.application.dto.response;
 
+import com.example.workmanager.member.domain.entity.UserRole;
 import com.example.workmanager.store.domain.entity.Store;
 import com.example.workmanager.store.domain.entity.StoreMember;
 import java.time.DayOfWeek;
@@ -23,6 +24,7 @@ public class StoreDetailResponse {
     public static StoreDetailResponse of(Store store, List<StoreMember> members,
                                           Map<Long, List<DayOfWeek>> workDaysMap) {
         List<StaffInfo> staffList = members.stream()
+                .filter(m -> m.getUser().getRole() != UserRole.OWNER)
                 .map(m -> new StaffInfo(
                         m.getUser().getId(),
                         m.getUser().getName(),
