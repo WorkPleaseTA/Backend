@@ -5,6 +5,7 @@ import com.example.workmanager.substitute.domain.entity.SubstituteCandidateStatu
 import com.example.workmanager.substitute.domain.entity.SubstituteRequest;
 import com.example.workmanager.substitute.domain.entity.SubstituteRequestStatus;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,9 +20,10 @@ public class IncomingSubstituteResponse {
     private LocalDate requestDate;
     private LocalTime startTime;
     private LocalTime endTime;
-    private String reason;
+    private String message;
     private SubstituteCandidateStatus myStatus;
     private SubstituteRequestStatus requestStatus;
+    private LocalDateTime createdAt;
 
     public static IncomingSubstituteResponse from(SubstituteCandidate candidate) {
         SubstituteRequest req = candidate.getSubstituteRequest();
@@ -32,9 +34,10 @@ public class IncomingSubstituteResponse {
                 .requestDate(req.getRequestDate())
                 .startTime(req.getStartTime())
                 .endTime(req.getEndTime())
-                .reason(req.getReason())
+                .message(req.getMessage())
                 .myStatus(candidate.getStatus())
                 .requestStatus(req.getStatus())
+                .createdAt(req.getCreatedAt())
                 .build();
     }
 }
