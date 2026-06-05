@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/ai")
 @RequiredArgsConstructor
-public class AiController {
+public class AiController implements AiControllerDocs {
 
     private final AiTodoService aiTodoService;
 

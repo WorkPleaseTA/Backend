@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/substitute")
 @RequiredArgsConstructor
-public class SubstituteRequestController {
+public class SubstituteRequestController implements SubstituteRequestControllerDocs {
 
     private final SubstituteService substituteService;
 

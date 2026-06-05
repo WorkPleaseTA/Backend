@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/todos")
 @RequiredArgsConstructor
-public class TodoController {
+public class TodoController implements TodoControllerDocs {
 
     private final TodoService todoService;
 
