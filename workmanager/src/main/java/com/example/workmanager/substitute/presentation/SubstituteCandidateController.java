@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/substitute/candidates")
 @RequiredArgsConstructor
-public class SubstituteCandidateController {
+public class SubstituteCandidateController implements SubstituteCandidateControllerDocs {
 
     private final StaffAvailabilityService staffAvailabilityService;
 

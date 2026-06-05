@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/substitute/availability")
 @RequiredArgsConstructor
-public class StaffAvailabilityController {
+public class StaffAvailabilityController implements StaffAvailabilityControllerDocs {
 
     private final StaffAvailabilityService staffAvailabilityService;
 

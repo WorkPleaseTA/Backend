@@ -18,7 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/stores/{storeId}/fixed-schedules")
 @RequiredArgsConstructor
-public class FixedScheduleController {
+public class FixedScheduleController implements FixedScheduleControllerDocs {
 
     private final FixedScheduleService fixedScheduleService;
 

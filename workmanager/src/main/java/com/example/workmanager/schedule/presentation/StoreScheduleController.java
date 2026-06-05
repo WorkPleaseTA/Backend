@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/stores/{storeId}/schedules")
 @RequiredArgsConstructor
-public class StoreScheduleController {
+public class StoreScheduleController implements StoreScheduleControllerDocs {
 
     private final FixedScheduleService fixedScheduleService;
 

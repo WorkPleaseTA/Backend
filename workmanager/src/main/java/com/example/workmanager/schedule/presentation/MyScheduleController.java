@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/schedule/my")
 @RequiredArgsConstructor
-public class MyScheduleController {
+public class MyScheduleController implements MyScheduleControllerDocs {
 
     private final FixedScheduleService fixedScheduleService;
 
