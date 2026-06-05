@@ -29,6 +29,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -167,6 +168,12 @@ public class FixedScheduleService {
                 .stream()
                 .collect(Collectors.toMap(ws -> ws.getStoreMember().getId(), ws -> ws));
 
+        // 대타 수락된 요청자 ID 수집 → 고정 스케줄 fallback에서 제외
+        Set<Long> substitutedMemberIds = workScheduleMap.values().stream()
+                .filter(ws -> ws.getSubstituteRequest() != null)
+                .map(ws -> ws.getSubstituteRequest().getStoreMember().getId())
+                .collect(Collectors.toSet());
+
         return storeMemberRepository.findAllByStoreIdAndStatus(storeId, StoreMemberStatus.ACTIVE)
                 .stream()
                 .filter(m -> m.getUser().getRole() != UserRole.OWNER)
@@ -180,6 +187,9 @@ public class FixedScheduleService {
                                 .endTime(ws.getEndTime())
                                 .isSubstitute(true)
                                 .build());
+                    }
+                    if (substitutedMemberIds.contains(member.getId())) {
+                        return java.util.stream.Stream.empty();
                     }
                     return fixedScheduleRepository
                             .findByStoreMemberIdAndDayOfWeek(member.getId(), dayOfWeek)
