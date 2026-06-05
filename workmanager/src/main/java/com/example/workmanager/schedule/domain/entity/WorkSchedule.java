@@ -1,7 +1,8 @@
-package com.example.workmanager.substitute.domain.entity;
+package com.example.workmanager.schedule.domain.entity;
 
 import com.example.workmanager.global.common.BaseEntity;
 import com.example.workmanager.store.domain.entity.StoreMember;
+import com.example.workmanager.substitute.domain.entity.SubstituteRequest;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -11,10 +12,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "substitute_requests")
+@Table(name = "work_schedules")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class SubstituteRequest extends BaseEntity {
+public class WorkSchedule extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,7 +26,7 @@ public class SubstituteRequest extends BaseEntity {
     private StoreMember storeMember;
 
     @Column(nullable = false)
-    private LocalDate requestDate;
+    private LocalDate workDate;
 
     @Column(nullable = false)
     private LocalTime startTime;
@@ -33,29 +34,18 @@ public class SubstituteRequest extends BaseEntity {
     @Column(nullable = false)
     private LocalTime endTime;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String message;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private SubstituteRequestStatus status;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "substitute_request_id")
+    private SubstituteRequest substituteRequest;
 
     @Builder
-    private SubstituteRequest(StoreMember storeMember, LocalDate requestDate,
-                               LocalTime startTime, LocalTime endTime, String message) {
+    private WorkSchedule(StoreMember storeMember, LocalDate workDate,
+                         LocalTime startTime, LocalTime endTime,
+                         SubstituteRequest substituteRequest) {
         this.storeMember = storeMember;
-        this.requestDate = requestDate;
+        this.workDate = workDate;
         this.startTime = startTime;
         this.endTime = endTime;
-        this.message = message;
-        this.status = SubstituteRequestStatus.PENDING;
-    }
-
-    public void accept() {
-        this.status = SubstituteRequestStatus.ACCEPTED;
-    }
-
-    public void cancel() {
-        this.status = SubstituteRequestStatus.CANCELLED;
+        this.substituteRequest = substituteRequest;
     }
 }

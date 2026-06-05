@@ -1,6 +1,8 @@
 package com.example.workmanager.substitute.application.service;
 
 import com.example.workmanager.global.common.exception.BaseException;
+import com.example.workmanager.schedule.domain.entity.WorkSchedule;
+import com.example.workmanager.schedule.domain.repository.WorkScheduleRepository;
 import com.example.workmanager.store.domain.entity.StoreMember;
 import com.example.workmanager.store.domain.entity.StoreMemberStatus;
 import com.example.workmanager.store.domain.repository.StoreMemberRepository;
@@ -11,10 +13,8 @@ import com.example.workmanager.substitute.domain.entity.SubstituteCandidate;
 import com.example.workmanager.substitute.domain.entity.SubstituteCandidateStatus;
 import com.example.workmanager.substitute.domain.entity.SubstituteRequest;
 import com.example.workmanager.substitute.domain.exception.SubstituteErrorCode;
-import com.example.workmanager.substitute.domain.repository.StaffAvailabilityRepository;
 import com.example.workmanager.substitute.domain.repository.SubstituteCandidateRepository;
 import com.example.workmanager.substitute.domain.repository.SubstituteRequestRepository;
-import java.time.DayOfWeek;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,8 +27,8 @@ public class SubstituteService {
 
     private final SubstituteRequestRepository requestRepository;
     private final SubstituteCandidateRepository candidateRepository;
-    private final StaffAvailabilityRepository availabilityRepository;
     private final StoreMemberRepository storeMemberRepository;
+    private final WorkScheduleRepository workScheduleRepository;
 
     public List<SubstituteRequestResponse> createRequest(Long userId, SubstituteRequestCreateRequest dto) {
         StoreMember requester = getActiveMember(userId, dto.getStoreId());
@@ -42,19 +42,15 @@ public class SubstituteService {
                 .requestDate(dto.getRequestDate())
                 .startTime(dto.getStartTime())
                 .endTime(dto.getEndTime())
-                .reason(dto.getReason())
+                .message(dto.getMessage())
                 .build());
 
-        DayOfWeek dayOfWeek = dto.getRequestDate().getDayOfWeek();
-
-        List<SubstituteCandidate> candidates = availabilityRepository
-                .findAllByStoreMemberStoreIdAndDayOfWeekAndStartTimeLessThanAndEndTimeGreaterThan(
-                        dto.getStoreId(), dayOfWeek, dto.getEndTime(), dto.getStartTime())
-                .stream()
-                .filter(a -> !a.getStoreMember().getId().equals(requester.getId()))
-                .map(a -> SubstituteCandidate.builder()
+        List<SubstituteCandidate> candidates = dto.getSelectedStoreMemberIds().stream()
+                .map(storeMemberId -> storeMemberRepository.findByIdAndStoreId(storeMemberId, dto.getStoreId())
+                        .orElseThrow(() -> new BaseException(SubstituteErrorCode.NOT_MEMBER_OF_STORE)))
+                .map(member -> SubstituteCandidate.builder()
                         .substituteRequest(request)
-                        .storeMember(a.getStoreMember())
+                        .storeMember(member)
                         .build())
                 .toList();
 
@@ -99,11 +95,20 @@ public class SubstituteService {
         }
 
         candidate.accept();
-        candidate.getSubstituteRequest().accept();
+        SubstituteRequest substituteRequest = candidate.getSubstituteRequest();
+        substituteRequest.accept();
+
+        workScheduleRepository.save(WorkSchedule.builder()
+                .storeMember(candidate.getStoreMember())
+                .workDate(substituteRequest.getRequestDate())
+                .startTime(substituteRequest.getStartTime())
+                .endTime(substituteRequest.getEndTime())
+                .substituteRequest(substituteRequest)
+                .build());
 
         // 다른 후보 자동 거절
         candidateRepository.findAllBySubstituteRequestIdAndStatus(
-                        candidate.getSubstituteRequest().getId(), SubstituteCandidateStatus.WAITING)
+                        substituteRequest.getId(), SubstituteCandidateStatus.WAITING)
                 .stream()
                 .filter(c -> !c.getId().equals(candidateId))
                 .forEach(SubstituteCandidate::decline);
