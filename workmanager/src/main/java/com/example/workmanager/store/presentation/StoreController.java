@@ -17,7 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/stores")
 @RequiredArgsConstructor
-public class StoreController {
+public class StoreController implements StoreControllerDocs {
 
     private final StoreService storeService;
 

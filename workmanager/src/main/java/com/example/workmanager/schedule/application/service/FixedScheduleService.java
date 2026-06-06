@@ -3,11 +3,16 @@ package com.example.workmanager.schedule.application.service;
 import com.example.workmanager.global.common.exception.BaseException;
 import com.example.workmanager.schedule.application.dto.request.FixedScheduleCreateRequest;
 import com.example.workmanager.schedule.application.dto.request.FixedScheduleUpdateRequest;
+import com.example.workmanager.schedule.application.dto.response.DailyScheduleResponse;
 import com.example.workmanager.schedule.application.dto.response.FixedScheduleEditResponse;
 import com.example.workmanager.schedule.application.dto.response.FixedScheduleResponse;
+import com.example.workmanager.schedule.application.dto.response.TodayScheduleResponse;
 import com.example.workmanager.schedule.domain.entity.FixedSchedule;
+import com.example.workmanager.schedule.domain.entity.WorkSchedule;
 import com.example.workmanager.schedule.domain.exception.ScheduleErrorCode;
 import com.example.workmanager.schedule.domain.repository.FixedScheduleRepository;
+import com.example.workmanager.schedule.domain.repository.WorkScheduleRepository;
+import com.example.workmanager.member.domain.entity.UserRole;
 import com.example.workmanager.store.domain.entity.Store;
 import com.example.workmanager.store.domain.entity.StoreMember;
 import com.example.workmanager.store.domain.entity.StoreMemberStatus;
@@ -19,9 +24,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,6 +38,7 @@ import java.util.stream.Collectors;
 public class FixedScheduleService {
 
     private final FixedScheduleRepository fixedScheduleRepository;
+    private final WorkScheduleRepository workScheduleRepository;
     private final StoreRepository storeRepository;
     private final StoreMemberRepository storeMemberRepository;
 
@@ -73,7 +82,10 @@ public class FixedScheduleService {
     public List<FixedScheduleEditResponse> getFixedScheduleEditView(Long userId, Long storeId, DayOfWeek dayOfWeek) {
         getOwnerStore(userId, storeId);
 
-        List<StoreMember> allMembers = storeMemberRepository.findAllByStoreIdAndStatus(storeId, StoreMemberStatus.ACTIVE);
+        List<StoreMember> allMembers = storeMemberRepository.findAllByStoreIdAndStatus(storeId, StoreMemberStatus.ACTIVE)
+                .stream()
+                .filter(m -> m.getUser().getRole() != UserRole.OWNER)
+                .toList();
 
         Map<Long, FixedSchedule> scheduleMap = fixedScheduleRepository
                 .findAllByStoreMemberStoreIdAndDayOfWeek(storeId, dayOfWeek)
@@ -119,6 +131,78 @@ public class FixedScheduleService {
         }
 
         fixedScheduleRepository.delete(schedule);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TodayScheduleResponse> getTodaySchedule(Long userId) {
+        LocalDate today = LocalDate.now();
+        DayOfWeek dayOfWeek = today.getDayOfWeek();
+
+        return storeMemberRepository.findAllByUserIdAndStatus(userId, StoreMemberStatus.ACTIVE)
+                .stream()
+                .map(member -> {
+                    Optional<WorkSchedule> workSchedule =
+                            workScheduleRepository.findByStoreMemberIdAndWorkDate(member.getId(), today);
+                    if (workSchedule.isPresent()) {
+                        return TodayScheduleResponse.fromWorkSchedule(workSchedule.get());
+                    }
+                    return fixedScheduleRepository
+                            .findByStoreMemberIdAndDayOfWeek(member.getId(), dayOfWeek)
+                            .map(TodayScheduleResponse::from)
+                            .orElse(null);
+                })
+                .filter(r -> r != null)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DailyScheduleResponse> getDailySchedule(Long userId, Long storeId, LocalDate date) {
+        StoreMember requester = storeMemberRepository
+                .findByUserIdAndStoreIdAndStatus(userId, storeId, StoreMemberStatus.ACTIVE)
+                .orElseThrow(() -> new BaseException(StoreErrorCode.ACCESS_DENIED));
+
+        DayOfWeek dayOfWeek = date.getDayOfWeek();
+
+        Map<Long, WorkSchedule> workScheduleMap = workScheduleRepository
+                .findAllByStoreMemberStoreIdAndWorkDate(storeId, date)
+                .stream()
+                .collect(Collectors.toMap(ws -> ws.getStoreMember().getId(), ws -> ws));
+
+        // 대타 수락된 요청자 ID 수집 → 고정 스케줄 fallback에서 제외
+        Set<Long> substitutedMemberIds = workScheduleMap.values().stream()
+                .filter(ws -> ws.getSubstituteRequest() != null)
+                .map(ws -> ws.getSubstituteRequest().getStoreMember().getId())
+                .collect(Collectors.toSet());
+
+        return storeMemberRepository.findAllByStoreIdAndStatus(storeId, StoreMemberStatus.ACTIVE)
+                .stream()
+                .filter(m -> m.getUser().getRole() != UserRole.OWNER)
+                .flatMap(member -> {
+                    if (workScheduleMap.containsKey(member.getId())) {
+                        WorkSchedule ws = workScheduleMap.get(member.getId());
+                        return java.util.stream.Stream.of(DailyScheduleResponse.builder()
+                                .storeMemberId(member.getId())
+                                .name(member.getUser().getName())
+                                .startTime(ws.getStartTime())
+                                .endTime(ws.getEndTime())
+                                .isSubstitute(true)
+                                .build());
+                    }
+                    if (substitutedMemberIds.contains(member.getId())) {
+                        return java.util.stream.Stream.empty();
+                    }
+                    return fixedScheduleRepository
+                            .findByStoreMemberIdAndDayOfWeek(member.getId(), dayOfWeek)
+                            .map(fs -> DailyScheduleResponse.builder()
+                                    .storeMemberId(member.getId())
+                                    .name(member.getUser().getName())
+                                    .startTime(fs.getStartTime())
+                                    .endTime(fs.getEndTime())
+                                    .isSubstitute(false)
+                                    .build())
+                            .stream();
+                })
+                .toList();
     }
 
     private Store getOwnerStore(Long userId, Long storeId) {

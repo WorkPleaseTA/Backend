@@ -1,8 +1,11 @@
 package com.example.workmanager.store.application.dto.response;
 
+import com.example.workmanager.member.domain.entity.UserRole;
 import com.example.workmanager.store.domain.entity.Store;
 import com.example.workmanager.store.domain.entity.StoreMember;
+import java.time.DayOfWeek;
 import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,9 +21,15 @@ public class StoreDetailResponse {
     private String inviteCode;
     private List<StaffInfo> staffList;
 
-    public static StoreDetailResponse of(Store store, List<StoreMember> members) {
+    public static StoreDetailResponse of(Store store, List<StoreMember> members,
+                                          Map<Long, List<DayOfWeek>> workDaysMap) {
         List<StaffInfo> staffList = members.stream()
-                .map(m -> new StaffInfo(m.getUser().getId(), m.getUser().getName()))
+                .filter(m -> m.getUser().getRole() != UserRole.OWNER)
+                .map(m -> new StaffInfo(
+                        m.getUser().getId(),
+                        m.getUser().getName(),
+                        workDaysMap.getOrDefault(m.getId(), List.of())
+                ))
                 .toList();
 
         return StoreDetailResponse.builder()
@@ -38,6 +47,6 @@ public class StoreDetailResponse {
     public static class StaffInfo {
         private Long userId;
         private String name;
-        // workDays: schedule 기능 구현 시 추가 예정 (CLAUDE.md 참고)
+        private List<DayOfWeek> workDays;
     }
 }

@@ -1,10 +1,13 @@
 package com.example.workmanager.store.application.service;
 
+import com.example.workmanager.chat.application.service.ChatRoomService;
 import com.example.workmanager.global.common.exception.BaseException;
 import com.example.workmanager.member.domain.entity.User;
 import com.example.workmanager.member.domain.entity.UserRole;
 import com.example.workmanager.member.domain.exception.UserErrorCode;
 import com.example.workmanager.member.domain.repository.UserRepository;
+import com.example.workmanager.schedule.domain.entity.FixedSchedule;
+import com.example.workmanager.schedule.domain.repository.FixedScheduleRepository;
 import com.example.workmanager.store.application.dto.request.StoreCreateRequest;
 import com.example.workmanager.store.application.dto.request.StoreJoinRequest;
 import com.example.workmanager.store.application.dto.response.StoreCreateResponse;
@@ -19,8 +22,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +36,8 @@ public class StoreService {
     private final StoreRepository storeRepository;
     private final StoreMemberRepository storeMemberRepository;
     private final UserRepository userRepository;
+    private final FixedScheduleRepository fixedScheduleRepository;
+    private final ChatRoomService chatRoomService;
 
     public StoreCreateResponse createStore(Long userId, StoreCreateRequest request) {
         User owner = getUser(userId);
@@ -48,7 +56,17 @@ public class StoreService {
                 .owner(owner)
                 .build();
 
-        return StoreCreateResponse.from(storeRepository.save(store));
+        Store savedStore = storeRepository.save(store);
+
+        StoreMember ownerMember = storeMemberRepository.save(StoreMember.builder()
+                .store(savedStore)
+                .user(owner)
+                .status(StoreMemberStatus.ACTIVE)
+                .build());
+
+        chatRoomService.initializeGroupRoom(savedStore, ownerMember);
+
+        return StoreCreateResponse.from(savedStore);
     }
 
     public void joinStore(Long userId, StoreJoinRequest request) {
@@ -65,11 +83,16 @@ public class StoreService {
             throw new BaseException(StoreErrorCode.ALREADY_JOINED);
         }
 
-        storeMemberRepository.save(StoreMember.builder()
+        List<StoreMember> existingMembers =
+                storeMemberRepository.findAllByStoreIdAndStatus(store.getId(), StoreMemberStatus.ACTIVE);
+
+        StoreMember newMember = storeMemberRepository.save(StoreMember.builder()
                 .store(store)
                 .user(staff)
                 .status(StoreMemberStatus.ACTIVE)
                 .build());
+
+        chatRoomService.onMemberJoined(newMember, existingMembers, store);
     }
 
     @Transactional(readOnly = true)
@@ -84,7 +107,14 @@ public class StoreService {
                 .map(store -> {
                     List<StoreMember> members = storeMemberRepository
                             .findAllByStoreIdAndStatus(store.getId(), StoreMemberStatus.ACTIVE);
-                    return StoreDetailResponse.of(store, members);
+                    Map<Long, List<DayOfWeek>> workDaysMap = fixedScheduleRepository
+                            .findAllByStoreMemberStoreId(store.getId())
+                            .stream()
+                            .collect(Collectors.groupingBy(
+                                    fs -> fs.getStoreMember().getId(),
+                                    Collectors.mapping(FixedSchedule::getDayOfWeek, Collectors.toList())
+                            ));
+                    return StoreDetailResponse.of(store, members, workDaysMap);
                 })
                 .toList();
     }
