@@ -97,13 +97,16 @@ public class StoreService {
 
     @Transactional(readOnly = true)
     public List<StoreDetailResponse> getMyStores(Long userId) {
-        User owner = getUser(userId);
+        User user = getUser(userId);
 
-        if (owner.getRole() != UserRole.OWNER) {
-            throw new BaseException(StoreErrorCode.ACCESS_DENIED);
-        }
+        List<Store> stores = (user.getRole() == UserRole.OWNER)
+                ? storeRepository.findAllByOwnerId(userId)
+                : storeMemberRepository.findAllByUserIdAndStatus(userId, StoreMemberStatus.ACTIVE)
+                        .stream()
+                        .map(StoreMember::getStore)
+                        .toList();
 
-        return storeRepository.findAllByOwnerId(userId).stream()
+        return stores.stream()
                 .map(store -> {
                     List<StoreMember> members = storeMemberRepository
                             .findAllByStoreIdAndStatus(store.getId(), StoreMemberStatus.ACTIVE);
