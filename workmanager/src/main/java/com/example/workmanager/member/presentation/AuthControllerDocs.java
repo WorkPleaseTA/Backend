@@ -15,7 +15,7 @@ public interface AuthControllerDocs {
     @Operation(summary = "회원가입", description = "role: OWNER(사장님) 또는 STAFF(직원)")
     ApiResponse<Void> signUp(SignUpRequest request);
 
-    @Operation(summary = "로그인", description = "로그인 성공 시 accessToken + refreshToken 반환")
+    @Operation(summary = "로그인", description = "로그인 성공 시 accessToken, refreshToken, name, role 반환")
     ApiResponse<TokenResponse> login(LoginRequest request);
 
     @Operation(summary = "토큰 재발급", description = "refreshToken으로 새 accessToken/refreshToken 발급")
