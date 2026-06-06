@@ -1,21 +1,27 @@
 package com.example.workmanager.substitute.application.service;
 
 import com.example.workmanager.global.common.exception.BaseException;
+import com.example.workmanager.member.domain.entity.UserRole;
 import com.example.workmanager.schedule.domain.entity.WorkSchedule;
 import com.example.workmanager.schedule.domain.repository.WorkScheduleRepository;
 import com.example.workmanager.store.domain.entity.StoreMember;
 import com.example.workmanager.store.domain.entity.StoreMemberStatus;
+import com.example.workmanager.store.domain.exception.StoreErrorCode;
 import com.example.workmanager.store.domain.repository.StoreMemberRepository;
 import com.example.workmanager.substitute.application.dto.request.SubstituteRequestCreateRequest;
+import com.example.workmanager.substitute.application.dto.response.DailySubstituteChangeResponse;
 import com.example.workmanager.substitute.application.dto.response.IncomingSubstituteResponse;
 import com.example.workmanager.substitute.application.dto.response.SubstituteRequestResponse;
 import com.example.workmanager.substitute.domain.entity.SubstituteCandidate;
 import com.example.workmanager.substitute.domain.entity.SubstituteCandidateStatus;
 import com.example.workmanager.substitute.domain.entity.SubstituteRequest;
+import com.example.workmanager.substitute.domain.entity.SubstituteRequestStatus;
 import com.example.workmanager.substitute.domain.exception.SubstituteErrorCode;
 import com.example.workmanager.substitute.domain.repository.SubstituteCandidateRepository;
 import com.example.workmanager.substitute.domain.repository.SubstituteRequestRepository;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -122,6 +128,29 @@ public class SubstituteService {
         }
 
         candidate.decline();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DailySubstituteChangeResponse> getDailySubstituteChanges(Long userId, Long storeId, LocalDate date) {
+        StoreMember member = storeMemberRepository
+                .findByUserIdAndStoreIdAndStatus(userId, storeId, StoreMemberStatus.ACTIVE)
+                .orElseThrow(() -> new BaseException(SubstituteErrorCode.NOT_MEMBER_OF_STORE));
+
+        if (member.getUser().getRole() != UserRole.OWNER) {
+            throw new BaseException(StoreErrorCode.ACCESS_DENIED);
+        }
+
+        return requestRepository
+                .findAllByStoreMemberStoreIdAndRequestDateAndStatus(storeId, date, SubstituteRequestStatus.ACCEPTED)
+                .stream()
+                .map(request -> candidateRepository
+                        .findAllBySubstituteRequestIdAndStatus(request.getId(), SubstituteCandidateStatus.ACCEPTED)
+                        .stream()
+                        .findFirst()
+                        .map(accepted -> DailySubstituteChangeResponse.of(request, accepted))
+                        .orElse(null))
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     private SubstituteCandidate getMyCandidate(Long userId, Long candidateId) {

@@ -2,11 +2,14 @@ package com.example.workmanager.substitute.presentation;
 
 import com.example.workmanager.global.common.response.ApiResponse;
 import com.example.workmanager.substitute.application.dto.request.SubstituteRequestCreateRequest;
+import com.example.workmanager.substitute.application.dto.response.DailySubstituteChangeResponse;
 import com.example.workmanager.substitute.application.dto.response.IncomingSubstituteResponse;
 import com.example.workmanager.substitute.application.dto.response.SubstituteRequestResponse;
 import com.example.workmanager.substitute.application.service.SubstituteService;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -38,6 +41,14 @@ public class SubstituteRequestController implements SubstituteRequestControllerD
             @AuthenticationPrincipal Long userId,
             @RequestParam Long storeId) {
         return ApiResponse.success(substituteService.getIncomingRequests(userId, storeId));
+    }
+
+    @GetMapping("/requests/daily")
+    public ApiResponse<List<DailySubstituteChangeResponse>> getDailySubstituteChanges(
+            @AuthenticationPrincipal Long userId,
+            @RequestParam Long storeId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ApiResponse.success(substituteService.getDailySubstituteChanges(userId, storeId, date));
     }
 
     @PostMapping("/candidates/{candidateId}/accept")
