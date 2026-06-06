@@ -134,15 +134,15 @@ public class FixedScheduleService {
     }
 
     @Transactional(readOnly = true)
-    public List<TodayScheduleResponse> getTodaySchedule(Long userId) {
-        LocalDate today = LocalDate.now();
-        DayOfWeek dayOfWeek = today.getDayOfWeek();
+    public List<TodayScheduleResponse> getTodaySchedule(Long userId, LocalDate date) {
+        LocalDate targetDate = date != null ? date : LocalDate.now();
+        DayOfWeek dayOfWeek = targetDate.getDayOfWeek();
 
         return storeMemberRepository.findAllByUserIdAndStatus(userId, StoreMemberStatus.ACTIVE)
                 .stream()
                 .map(member -> {
                     Optional<WorkSchedule> workSchedule =
-                            workScheduleRepository.findByStoreMemberIdAndWorkDate(member.getId(), today);
+                            workScheduleRepository.findByStoreMemberIdAndWorkDate(member.getId(), targetDate);
                     if (workSchedule.isPresent()) {
                         return TodayScheduleResponse.fromWorkSchedule(workSchedule.get());
                     }

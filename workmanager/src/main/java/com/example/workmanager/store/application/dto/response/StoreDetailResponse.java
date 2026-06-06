@@ -15,6 +15,7 @@ import lombok.Getter;
 public class StoreDetailResponse {
 
     private Long id;
+    private Long myStoreMemberId;
     private String name;
     private String businessType;
     private String size;
@@ -22,7 +23,8 @@ public class StoreDetailResponse {
     private List<StaffInfo> staffList;
 
     public static StoreDetailResponse of(Store store, List<StoreMember> members,
-                                          Map<Long, List<DayOfWeek>> workDaysMap) {
+                                          Map<Long, List<DayOfWeek>> workDaysMap,
+                                          Long myStoreMemberId) {
         List<StaffInfo> staffList = members.stream()
                 .filter(m -> m.getUser().getRole() != UserRole.OWNER)
                 .map(m -> new StaffInfo(
@@ -34,6 +36,7 @@ public class StoreDetailResponse {
 
         return StoreDetailResponse.builder()
                 .id(store.getId())
+                .myStoreMemberId(myStoreMemberId)
                 .name(store.getName())
                 .businessType(store.getBusinessType().getLabel())
                 .size(store.getSize().getLabel())

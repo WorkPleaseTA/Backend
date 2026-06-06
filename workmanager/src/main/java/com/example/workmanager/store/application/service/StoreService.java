@@ -114,7 +114,11 @@ public class StoreService {
                                     fs -> fs.getStoreMember().getId(),
                                     Collectors.mapping(FixedSchedule::getDayOfWeek, Collectors.toList())
                             ));
-                    return StoreDetailResponse.of(store, members, workDaysMap);
+                    Long myStoreMemberId = storeMemberRepository
+                            .findByUserIdAndStoreIdAndStatus(userId, store.getId(), StoreMemberStatus.ACTIVE)
+                            .map(StoreMember::getId)
+                            .orElse(null);
+                    return StoreDetailResponse.of(store, members, workDaysMap, myStoreMemberId);
                 })
                 .toList();
     }

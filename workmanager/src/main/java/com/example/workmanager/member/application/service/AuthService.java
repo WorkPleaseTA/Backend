@@ -55,7 +55,7 @@ public class AuthService {
                 new RefreshToken(user.getId(), refreshToken, jwtProvider.getRefreshTokenExpiration() / 1000)
         );
 
-        return new TokenResponse(accessToken, refreshToken);
+        return new TokenResponse(accessToken, refreshToken, user.getName(), user.getRole().name());
     }
 
     public TokenResponse reissue(String refreshTokenValue) {
@@ -82,7 +82,7 @@ public class AuthService {
                 new RefreshToken(userId, newRefreshToken, jwtProvider.getRefreshTokenExpiration())
         );
 
-        return new TokenResponse(newAccessToken, newRefreshToken);
+        return new TokenResponse(newAccessToken, newRefreshToken, user.getName(), user.getRole().name());
     }
 
     public void logout(Long userId) {
