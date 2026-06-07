@@ -11,6 +11,7 @@ import com.example.workmanager.store.domain.repository.StoreMemberRepository;
 import com.example.workmanager.substitute.application.dto.request.SubstituteRequestCreateRequest;
 import com.example.workmanager.substitute.application.dto.response.DailySubstituteChangeResponse;
 import com.example.workmanager.substitute.application.dto.response.IncomingSubstituteResponse;
+import com.example.workmanager.substitute.application.dto.response.StoreSubstituteHistoryResponse;
 import com.example.workmanager.substitute.application.dto.response.SubstituteRequestResponse;
 import com.example.workmanager.substitute.domain.entity.SubstituteCandidate;
 import com.example.workmanager.substitute.domain.entity.SubstituteCandidateStatus;
@@ -150,6 +151,29 @@ public class SubstituteService {
                         .map(accepted -> DailySubstituteChangeResponse.of(request, accepted))
                         .orElse(null))
                 .filter(Objects::nonNull)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<StoreSubstituteHistoryResponse> getStoreSubstituteHistory(Long userId, Long storeId) {
+        StoreMember member = storeMemberRepository
+                .findByUserIdAndStoreIdAndStatus(userId, storeId, StoreMemberStatus.ACTIVE)
+                .orElseThrow(() -> new BaseException(SubstituteErrorCode.NOT_MEMBER_OF_STORE));
+
+        if (member.getUser().getRole() != UserRole.OWNER) {
+            throw new BaseException(StoreErrorCode.ACCESS_DENIED);
+        }
+
+        return requestRepository.findAllByStoreMemberStoreIdOrderByRequestDateDesc(storeId)
+                .stream()
+                .map(request -> {
+                    SubstituteCandidate accepted = candidateRepository
+                            .findAllBySubstituteRequestIdAndStatus(request.getId(), SubstituteCandidateStatus.ACCEPTED)
+                            .stream()
+                            .findFirst()
+                            .orElse(null);
+                    return StoreSubstituteHistoryResponse.of(request, accepted);
+                })
                 .toList();
     }
 
