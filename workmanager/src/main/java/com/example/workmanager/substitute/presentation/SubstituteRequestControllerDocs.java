@@ -4,6 +4,7 @@ import com.example.workmanager.global.common.response.ApiResponse;
 import com.example.workmanager.substitute.application.dto.request.SubstituteRequestCreateRequest;
 import com.example.workmanager.substitute.application.dto.response.DailySubstituteChangeResponse;
 import com.example.workmanager.substitute.application.dto.response.IncomingSubstituteResponse;
+import com.example.workmanager.substitute.application.dto.response.StoreSubstituteHistoryResponse;
 import com.example.workmanager.substitute.application.dto.response.SubstituteRequestResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -36,6 +37,12 @@ public interface SubstituteRequestControllerDocs {
             @Parameter(hidden = true) Long userId,
             @Parameter(description = "가게 ID") Long storeId,
             @Parameter(description = "조회 날짜 (yyyy-MM-dd)") LocalDate date);
+
+    @Operation(summary = "매장 대타 변동 전체 이력 조회 (OWNER 전용)",
+            description = "모든 상태(PENDING/ACCEPTED/CANCELLED)의 대타 요청 목록. substituteName은 ACCEPTED일 때만 값 있음")
+    ApiResponse<List<StoreSubstituteHistoryResponse>> getStoreSubstituteHistory(
+            @Parameter(hidden = true) Long userId,
+            @Parameter(description = "가게 ID") Long storeId);
 
     @Operation(summary = "대타 수락",
             description = "수락 시 work_schedules 자동 생성. 나머지 WAITING 후보 자동 DECLINED 처리")

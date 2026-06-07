@@ -12,4 +12,6 @@ public interface SubstituteRequestRepository extends JpaRepository<SubstituteReq
 
     List<SubstituteRequest> findAllByStoreMemberStoreIdAndRequestDateAndStatus(
             Long storeId, LocalDate requestDate, SubstituteRequestStatus status);
+
+    List<SubstituteRequest> findAllByStoreMemberStoreIdOrderByRequestDateDesc(Long storeId);
 }
