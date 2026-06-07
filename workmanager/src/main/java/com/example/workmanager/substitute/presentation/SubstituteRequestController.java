@@ -4,6 +4,7 @@ import com.example.workmanager.global.common.response.ApiResponse;
 import com.example.workmanager.substitute.application.dto.request.SubstituteRequestCreateRequest;
 import com.example.workmanager.substitute.application.dto.response.DailySubstituteChangeResponse;
 import com.example.workmanager.substitute.application.dto.response.IncomingSubstituteResponse;
+import com.example.workmanager.substitute.application.dto.response.StoreSubstituteHistoryResponse;
 import com.example.workmanager.substitute.application.dto.response.SubstituteRequestResponse;
 import com.example.workmanager.substitute.application.service.SubstituteService;
 import java.time.LocalDate;
@@ -49,6 +50,13 @@ public class SubstituteRequestController implements SubstituteRequestControllerD
             @RequestParam Long storeId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return ApiResponse.success(substituteService.getDailySubstituteChanges(userId, storeId, date));
+    }
+
+    @GetMapping("/requests/store")
+    public ApiResponse<List<StoreSubstituteHistoryResponse>> getStoreSubstituteHistory(
+            @AuthenticationPrincipal Long userId,
+            @RequestParam Long storeId) {
+        return ApiResponse.success(substituteService.getStoreSubstituteHistory(userId, storeId));
     }
 
     @PostMapping("/candidates/{candidateId}/accept")
